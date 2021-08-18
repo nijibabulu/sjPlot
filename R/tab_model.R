@@ -1069,9 +1069,9 @@ tab_model <- function(
       labs <- sjmisc::word_wrap(pred.labels, wrap = wrap.labels, linesep = "<br>")
       if (show.reflvl) {
         pl <- pred.labels
+        dat <- merge(dat, data.frame(term = names(pl)), by = "term", all = TRUE)
         dupes <- which(pred.labels == names(pred.labels))
         if (!sjmisc::is_empty(dupes)) pl <- pl[-dupes]
-        dat <- merge(dat, data.frame(term = names(pl)), by = "term", all = TRUE)
         # resort, in case reference level is alphabetically after other categories
         found <- match(names(pl), dat$term)
         dat[sort(found), ] <- dat[found, ]
@@ -1384,33 +1384,19 @@ remove_unwanted <- function(dat, show.intercept, show.est, show.std, show.ci, sh
 }
 
 
-prepare.labels <- function(x, grp, categorical, models) {
-
-  # remove variable names from factor is ref levels are shown
-  if (grp) {
-    for (i in models) {
-      f <- names(which(sapply(insight::get_data(i), is.factor)))
-      remove <- names(x) %in% f
-      if (any(remove)) {
-        x <- x[!remove]
-        categorical <- categorical[!remove]
-      }
-    }
-  }
-
+prepare.labels <- function(x, categorical, models) {
   x_var <- names(x[!categorical])
   x_val <- names(x[categorical])
+  x_catvar <- c()
 
   for (i in x_var) {
+    x_catvar <- c(x_catvar, i)
     pos <- string_starts_with(i, x = x_val)
-
-    if (!grp || (length(pos) > 0 && length(pos) < 3)) {
-      match.vals <- x_val[pos]
-      x[match.vals] <- sprintf("%s: %s", x[i], x[match.vals])
-    }
+    match.vals <- x_val[pos]
+    x[match.vals] <- sprintf("%s: %s", x[i], x[match.vals])
   }
 
-  x
+  x[!names(x) %in% x_catvar]
 }
 
 format_p_values <- function(dat, p.style, digits.p, emph.p, p.threshold){
