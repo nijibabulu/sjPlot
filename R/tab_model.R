@@ -1047,7 +1047,6 @@ tab_model <- function(
       no.dupes <- !duplicated(names(pred.labels))
       pred.labels <- prepare.labels(
         x = pred.labels[no.dupes],
-        grp = show.reflvl,
         categorical = category.values[no.dupes],
         models = models
       )
