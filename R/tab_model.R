@@ -75,6 +75,10 @@
 #' @param show.df Logical, if \code{TRUE} and \code{p.val = "kr"}, the p-values
 #'    for linear mixed models are based on df with Kenward-Rogers approximation.
 #'    These df-values are printed. See \code{\link[parameters]{p_value}} for details.
+#' @param show.n Logical, if \code{TRUE}, show the number of observations in
+#'    the model data used to estimate the term.
+#' @param string.n Character vector, used as the headline for the number of
+#'    observations. Default is \code{"N"}.
 #' @param string.pred Character vector,used as headline for the predictor column.
 #'    Default is \code{"Predictors"}.
 #' @param string.est Character vector, used for the column heading of coefficients.
@@ -257,6 +261,7 @@ tab_model <- function(
   show.loglik = FALSE,
   show.obs = TRUE,
   show.reflvl = FALSE,
+  show.n = FALSE,
 
   terms = NULL,
   rm.terms = NULL,
@@ -276,6 +281,7 @@ tab_model <- function(
   vcov.type = c("HC3", "const", "HC", "HC0", "HC1", "HC2", "HC4", "HC4m", "HC5", "CR0", "CR1", "CR1p", "CR1S", "CR2", "CR3"),
   vcov.args = NULL,
 
+  string.n = "N",
   string.pred = "Predictors",
   string.est = "Estimate",
   string.std = "std. Beta",
@@ -300,6 +306,7 @@ tab_model <- function(
 
 
   col.order = c(
+    "n",
     "est",
     "se",
     "std.est",
@@ -382,6 +389,9 @@ tab_model <- function(
 
   auto.transform <- missing(transform)
   ci.lvl <- ifelse(is.null(show.ci), .95, show.ci)
+
+  copos <- which("n" == col.order)
+  if (!sjmisc::is_empty(copos)) col.order[copos] <- "n"
 
   copos <- which("est" == col.order)
   if (!sjmisc::is_empty(copos)) col.order[copos] <- "estimate"
@@ -468,7 +478,8 @@ tab_model <- function(
         bootstrap = bootstrap,
         iterations = iterations,
         seed = seed,
-        p_adjust = p.adjust
+        p_adjust = p.adjust,
+        show.n = show.n
       )
 
 
@@ -604,7 +615,8 @@ tab_model <- function(
       # for HTML, convert numerics to character ----
 
       dat <- dat %>%
-        purrr::map_if(is.numeric, ~ sprintf("%.*f", digits, .x)) %>%
+        purrr::map_if(~is.numeric(.x) && all(.x%%1 == 0), as.character) %>%
+        purrr::map_if(~is.numeric(.x) && any(.x%%1 != 0), ~ sprintf("%.*f", digits, .x)) %>%
         as.data.frame(stringsAsFactors = FALSE)
 
 
@@ -1182,6 +1194,9 @@ tab_model <- function(
       }
     }
 
+
+    pos <- grep("^n_", x)
+    if (!sjmisc::is_empty(pos)) x <- string.n
 
     pos <- grep("^term", x)
     if (!sjmisc::is_empty(pos)) x <- string.pred

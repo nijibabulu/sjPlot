@@ -4,7 +4,7 @@
 #' @importFrom insight standardize_names
 tidy_model <- function(
   model, ci.lvl, tf, type, bpe, robust, facets, show.zeroinf, p.val,
-  standardize = FALSE, bootstrap = FALSE, iterations = 1000, seed = NULL, p_adjust = NULL, ...) {
+  standardize = FALSE, bootstrap = FALSE, iterations = 1000, seed = NULL, p_adjust = NULL, show.n = FALSE, ...) {
 
   if (!is.logical(standardize) && standardize == "") standardize <- NULL
   if (is.logical(standardize) && standardize == FALSE) standardize <- NULL
@@ -47,8 +47,21 @@ tidy_model <- function(
       model_params <- parameters::model_parameters(model, ci = ci.lvl, component = component, bootstrap = bootstrap, iterations = iterations, robust = TRUE, vcov_estimation = robust$vcov.fun, vcov_type = robust$vcov.type, vcov_args = robust$vcov.args, df_method = df_method, p_adjust = p_adjust, effects = "fixed")
     } else {
       model_params <- parameters::model_parameters(model, ci = ci.lvl, component = component, bootstrap = bootstrap, iterations = iterations, df_method = df_method, p_adjust = p_adjust, effects = "fixed")
+
     }
+
     out <- insight::standardize_names(model_params, style = "broom")
+
+    if(show.n) {
+      param_types <- parameters::parameters_type(model)[, c("Parameter", "Type")]
+      out <- merge(out, insight::standardize_names(param_types, style = "broom"), by = "term", all.x = T)
+      out$obs <- as.list(as.data.frame(insight::get_modelmatrix(model)))[out$term]
+      out$n <- with(out, ifelse(type == "factor" | type == "character",
+                                mapply(sum, obs),
+                                mapply(function(x) sum(!is.na(x)), obs)))
+      out$type <- NULL
+      out$obs <- NULL
+    }
 
     # warning for p-values?
     tryCatch({
